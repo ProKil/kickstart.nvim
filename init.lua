@@ -161,6 +161,10 @@ vim.opt.scrolloff = 10
 -- See `:help 'confirm'`
 vim.opt.confirm = true
 
+-- folding melthod
+vim.opt.foldmethod = 'expr'
+vim.opt.foldexpr = 'nvim_treesitter#foldexpr()'
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
