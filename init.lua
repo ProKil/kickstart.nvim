@@ -680,6 +680,10 @@ require('lazy').setup({
         -- ts_ls = {},
         --
 
+        -- LaTeX language server: cross-reference and citation-key completion,
+        -- document symbols, and diagnostics. Building stays with VimTeX/latexmk.
+        texlab = {},
+
         lua_ls = {
           -- cmd = { ... },
           -- filetypes = { ... },
@@ -961,7 +965,7 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'bibtex', 'c', 'diff', 'html', 'latex', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -970,6 +974,10 @@ require('lazy').setup({
         --  If you are experiencing weird indenting issues, add the language to
         --  the list of additional_vim_regex_highlighting and disabled languages for indent.
         additional_vim_regex_highlighting = { 'ruby' },
+        -- VimTeX's own syntax engine handles math conceal better than the
+        -- treesitter parser, and running both double-highlights the buffer.
+        -- The latex parser stays installed for indent and text objects.
+        disable = { 'latex' },
       },
       indent = { enable = true, disable = { 'ruby' } },
     },
@@ -998,6 +1006,8 @@ require('lazy').setup({
   require 'kickstart.plugins.neo-tree',
   require 'custom.plugins.snacks',
   require 'custom.plugins.yazi',
+  require 'custom.plugins.latex',
+  require 'custom.plugins.latex-editing',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
