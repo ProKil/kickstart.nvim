@@ -163,7 +163,9 @@ vim.opt.confirm = true
 
 -- folding melthod
 vim.opt.foldmethod = 'expr'
-vim.opt.foldexpr = 'nvim_treesitter#foldexpr()'
+-- Neovim's built-in treesitter foldexpr. (nvim_treesitter#foldexpr() was the
+-- nvim-treesitter master branch's version and no longer exists on main.)
+vim.opt.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -961,32 +963,63 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    -- The master branch supports Neovim 0.10/0.11 only; on 0.12 its highlighter
+    -- errors out. `main` is the branch that supports current Neovim.
+    branch = 'main',
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
-    -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
-    opts = {
-      ensure_installed = { 'bash', 'bibtex', 'c', 'diff', 'html', 'latex', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
-      -- Autoinstall languages that are not installed
-      auto_install = true,
-      highlight = {
-        enable = true,
-        -- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
-        --  If you are experiencing weird indenting issues, add the language to
-        --  the list of additional_vim_regex_highlighting and disabled languages for indent.
-        additional_vim_regex_highlighting = { 'ruby' },
-        -- VimTeX's own syntax engine handles math conceal better than the
-        -- treesitter parser, and running both double-highlights the buffer.
-        -- The latex parser stays installed for indent and text objects.
-        disable = { 'latex' },
-      },
-      indent = { enable = true, disable = { 'ruby' } },
-    },
-    -- There are additional nvim-treesitter modules that you can use to interact
-    -- with nvim-treesitter. You should go explore a few and see what interests you:
-    --
-    --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
-    --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
-    --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
+    lazy = false,
+    config = function()
+      local ts = require 'nvim-treesitter'
+      ts.setup {}
+
+      ts.install {
+        'bash',
+        'bibtex',
+        'c',
+        'diff',
+        'html',
+        'latex',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'query',
+        'vim',
+        'vimdoc',
+      }
+
+      -- On main there is no `highlight`/`indent` module: highlighting is started
+      -- per buffer with vim.treesitter.start().
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('custom-treesitter-start', { clear = true }),
+        desc = 'Start treesitter highlighting when a parser is available',
+        callback = function(ev)
+          local lang = vim.treesitter.language.get_lang(ev.match)
+          if not lang then
+            return
+          end
+
+          -- VimTeX's syntax engine handles .tex better than the treesitter
+          -- parser, and running both double-highlights the buffer. The latex
+          -- parser stays installed for text objects and folds.
+          if lang == 'latex' then
+            return
+          end
+
+          if not pcall(vim.treesitter.language.add, lang) then
+            return
+          end
+
+          pcall(vim.treesitter.start, ev.buf, lang)
+
+          -- Fall back to Vim's built-in indenting where there is no indent
+          -- query. Ruby's treesitter indents are known to misbehave.
+          if lang ~= 'ruby' and vim.treesitter.query.get(lang, 'indents') then
+            vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+        end,
+      })
+    end,
   },
 
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
